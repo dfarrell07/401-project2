@@ -9,19 +9,21 @@ DEBUG = True
 E_INVALID_PARAMS = 2
 SPORT = 7735 # Well-known server port
 
-pkt = namedtuple("pkt", ["seq_num", "chk_sum", "type"])
 me = socket.gethostbyname(socket.gethostname())
 
-# Read data from CLI
-# Spec: Must have form <sport> <file_name> <prob_loss> 
+# Build data structure for repersentating packets
+pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
 
-if len(sys.argv) != 3:
+# Validate number of passed argumnets
+# Spec: Must have form <sport> <file_name> <prob_loss> 
+if len(sys.argv) != 4:
   print "Usage: ./server <sport> <file_name> <prob_loss>"
   sys.exit(E_INVALID_PARAMS)
 
-sport = sys.argv[1]
-file_name = sys.argv[2]
-prob_loss = sys.argv[3]
+# Read data from CLI
+sport = int(sys.argv[1])
+file_name = str(sys.argv[2])
+prob_loss = float(sys.argv[3])
 
 # Only port 7735 is allowed for this project
 if sport != SPORT:
@@ -29,12 +31,15 @@ if sport != SPORT:
   sport = SPORT
 
 def valid_checksum():
+  """Check the validity of a data/checksum pair"""
   return True
 
 def parse_pkt(pkt_raw):
+  """Convert raw pkt data into a usable pkt named tuple"""
   return "stub"
 
 def send_ack(seq_num):
+  """ACK the given seq_num pkt"""
   return True
 
 # Listen for connections on sport
