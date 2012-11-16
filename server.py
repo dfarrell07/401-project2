@@ -42,24 +42,30 @@ def send_ack(seq_num):
   """ACK the given seq_num pkt"""
   return True
 
-# Listen for connections on sport
-s = socket.socket()
-host = socket.gethostname()
-s.bind((me, sport))
-s.listen(5)
+# Listen for connections on sport TODO: Try/catch?
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind((me, sport))
 print "SERVER: Listening on " + me + ":" + str(sport)
 while True:
   # Receive packet
   try:
-      con, addr = s.accept()
+      # TODO: Remove magic number
+      pkt_recv_raw, addr = sock.recvfrom(4096)
+      if DEBUG:
+        print "SERVER FROM CLIENT:", addr
+        print "SERVER FROM CLIENT:", pkt_recv_raw
   except socket.error:
+      if DEBUG:
+        # TODO: Add more error info
+        print "SERVER: Error, dropping pkt"
       continue
   except KeyboardInterrupt:
     print "\nSERVER: Shutting down"
-    s.close
+    sock.close
     sys.exit(0)
-  pkt_raw = con.recv(4096)
-  pkt = parse_pkt(pkt_raw)
+
+  # Parse pkt into named tuple
+  pkt_recv = parse_pkt(pkt_recv_raw)
 
   # Generate artificial packet loss
   if random.random() <= prob_loss:
@@ -72,8 +78,8 @@ while True:
   # Check sequence number
 
   # Send ACK
-  seq_num = 0
-  send_ack(seq_num)
+  #send_ack(pkt_recv.seq_num)
 
   # Write data to file 
+
 
