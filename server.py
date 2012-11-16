@@ -3,11 +3,15 @@
 import socket
 import sys
 import random
+from struct import *
 from collections import namedtuple
 
 DEBUG = True
 E_INVALID_PARAMS = 2
 SPORT = 7735 # Well-known server port
+CPORT = 7736 # Well-known client port
+HEADER_LEN = 8 # Bytes
+ACK_ID = 0b1010101010101010
 
 me = socket.gethostbyname(socket.gethostname())
 
@@ -30,17 +34,34 @@ if sport != SPORT:
   print "Sorry, the use of port", SPORT, "is required for this project"
   sport = SPORT
 
-def valid_checksum():
+def valid_checksum(chk_sum, data):
   """Check the validity of a data/checksum pair"""
   return True
 
 def parse_pkt(pkt_raw):
   """Convert raw pkt data into a usable pkt named tuple"""
-  return "stub"
+  pkt_unpacked = unpack('iHH' + str(len(pkt_raw) - HEADER_LEN) + 's', pkt_raw) + (False,)
 
-def send_ack(seq_num):
+  if DEBUG:
+    print "SERVER: Unpacked pkt", pkt_unpacked
+
+  new_pkt = pkt._make(pkt_unpacked)
+  
+  if DEBUG:
+    print "SERVER: New pkt tuple", new_pkt
+
+  return new_pkt
+
+def send_ack(seq_num, chost):
   """ACK the given seq_num pkt"""
-  return True
+  raw_ack = pack('iHH', seq_num, 0, ACK_ID)
+
+  #if DEBUG:
+  #  print "SERVER: Sending:", raw_ack
+
+  sock.sendto(raw_ack, (chost, CPORT))
+
+expected_seq_num = 0
 
 # Listen for connections on sport TODO: Try/catch?
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -69,17 +90,25 @@ while True:
 
   # Generate artificial packet loss
   if random.random() <= prob_loss:
+    if DEBUG:
+      print "SERVER: Artificial pkt loss at p =", prob_loss
     continue
 
   # Compute checksum
-  if not valid_checksum():
+  if not valid_checksum(pkt_recv.chk_sum, pkt_recv.data):
+    if DEBUG:
+      print "SERVER: Invalid checksum, pkt dropped"
     continue
 
   # Check sequence number
+  if expected_seq_num != pkt_recv.seq_num:
+    if DEBUG:
+      print "SERVER: Unexpected sequence number", pkt_recv.seq_num, ", expected", expected_seq_num
+    continue
 
   # Send ACK
-  #send_ack(pkt_recv.seq_num)
+  send_ack(pkt_recv.seq_num, addr[0])
 
-  # Write data to file 
+  # TODO Write data to file 
 
 

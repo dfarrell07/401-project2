@@ -3,6 +3,7 @@
 import socket
 import errno
 import sys
+from struct import *
 from collections import namedtuple
 
 DEBUG = True
@@ -12,6 +13,7 @@ E_NO_SERVER = 70
 SPORT = 7735 # Well-known server port
 CPORT = 7736 # Well-known client port
 DATA_ID = 0b0101010101010101 # Well-known
+ACK_ID = 0b1010101010101010
 HEADER_LEN = 8 # Bytes
 
 # Open UDP socket for communication with server
@@ -21,6 +23,7 @@ sock.bind((me, CPORT))
 
 # Build data structure for repersentating packets
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
+ack = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type"])
 
 # Validate the number of passed arguments
 # Spec: Must have form <shost> <sport> <file_name> <N> <MSS> 
@@ -54,28 +57,25 @@ def valid_checksum():
   """Check the validity of a data/checksum pair"""
   return True
 
-def craft_pkt(pkt):
-  """TODO: Use ASCII encoding to send header info, not hex"""
-
-  #TODO: Do this with one string formatting operation
-  return str('%08X'%(pkt.seq_num)) + str('%04X'%(pkt.chk_sum)) \
-      + str('%04X'%(pkt.pkt_type)) + str(pkt.data)
-
 def send_pkt(pkt, sock):
   """
   Take a pkt named tuple, build the pkt and send it to the server
   """
-  try:
-    # Send packet to server
-    sock.sendto(craft_pkt(pkt), (shost, SPORT))
-  except IOError, e:
-    if e.errno == errno.EPIPE:
-      print "CLIENT ERROR: There is no server on", str(shost) + ":" \
-        + str(sport)
-    else:
-      print "CLIENT ERROR: There was an IOError", e.errno
-    sock.close()
-    sys.exit(1)
+  raw_pkt = pack('ihh' + str(len(pkt.data)) + 's', pkt.seq_num, pkt.chk_sum, pkt.pkt_type, pkt.data)
+
+  if DEBUG:
+    print "CLIENT: Sending:", raw_pkt
+
+  sock.sendto(raw_pkt, (shost, SPORT))
+
+def parse_ack(pkt_raw):
+  """Convert raw ACK pkt into a usable pkt named tuple"""
+  new_pkt = ack._make(unpack('iHH', pkt_raw))
+  
+  if DEBUG:
+    print "SERVER: New pkt tuple", new_pkt
+
+  return new_pkt
 
 def build_pkts(file_data):
   """Takes raw data to be sent and builds a list of pkt named tuples"""
@@ -111,8 +111,7 @@ def rdt_send(file_data):
 
     # Can we send a packet, do we need to send pkt
     if unacked < window_size and (unacked + oldest_unacked) < len(pkts):
-      #send_pkt(pkts[oldest_unacked], sock)
-      sock.sendto(craft_pkt(pkts[oldest_unacked]), (shost, SPORT))
+      send_pkt(pkts[oldest_unacked], sock)
 
       if DEBUG:
         print "CLIENT: Sent pkt to", str(shost) + ":" +  str(SPORT)
@@ -125,27 +124,21 @@ def rdt_send(file_data):
 
       if DEBUG:
         print "CLIENT FROM SERVER:\n", addr
-        print "CLIENT FROM SERVER:\n", data
+        print "CLIENT FROM SERVER:\n", pkt_recv_raw
 
       # Confirm that pkt is from the server
-      if addr != SHOST:
+      if addr[0] != shost:
         if DEBUG:
           print "CLIENT: Unexpected pkt from", addr
         continue
 
       # Decode packet
-      pkt_recv = decode_pkt(pkt_recv_raw)
-
-      # Validate pkt checksum
-      if not valid_checksum(pkt_recv.data, pkt_recv.chksum):
-        if DEBUG:
-          print "CLIENT: Invalid checksum, dropping pkt"
-        continue
+      pkt_recv = parse_ack(pkt_recv_raw)
 
       # Confirm that pkt is indeed an ACK
-      if pkt.pkt_type != ACK_ID:
+      if pkt_recv.pkt_type != ACK_ID:
         if DEBUG:
-          print "CLIENT: Unexpect pkt type", pkt.pkt_type, ", dropping pkt"
+          print "CLIENT: Unexpect pkt type", pkt_recv.pkt_type, ", dropping pkt"
         continue
 
       # Pkt is sound
@@ -180,5 +173,3 @@ if DEBUG:
 
 # Pass file data to reliable data transfer function
 rdt_send(file_data)
-
-
