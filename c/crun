@@ -3,7 +3,7 @@
 cp ../client.py ./
 #echo "$(dd if=/dev/urandom bs=3 count=1000)" > file0
 cat ../file2 > ./file0
-./client.py 127.0.1.1 7735 file0 5 1500
+./client.py 10.0.0.2 7735 file0 5 1500
 sleep 4
 diff ../s/file0 file0
 if [ $? ]

@@ -16,7 +16,13 @@ HEADER_LEN = 8 # Bytes
 ACK_ID = 0b1010101010101010
 TIMEOUT = 3
 
-me = socket.gethostbyname(socket.gethostname())
+# Find my IP
+# Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+stmp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+stmp.connect(("gmail.com",80))
+me = stmp.getsockname()[0]
+stmp.close()
+
 
 # Build data structure for repersentating packets
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])

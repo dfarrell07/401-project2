@@ -16,9 +16,15 @@ DATA_ID = 0b0101010101010101 # Well-known
 ACK_ID = 0b1010101010101010
 HEADER_LEN = 8 # Bytes
 
+# Find my IP
+# Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+stmp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+stmp.connect(("gmail.com",80))
+me = stmp.getsockname()[0]
+stmp.close()
+
 # Open UDP socket for communication with server
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-me = socket.gethostbyname(socket.gethostname())
 sock.bind((me, CPORT))
 
 # Build data structure for repersentating packets
