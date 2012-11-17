@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+cp ../server.py ./
+rm file0
+./server.py 7735 file0 .001
