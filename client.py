@@ -18,10 +18,10 @@ CPORT = 7736 # Well-known client port
 DATA_ID = 0b0101010101010101 # Well-known
 ACK_ID = 0b1010101010101010
 HEADER_LEN = 8 # Bytes
-TIMEOUT = 0
+TIMEOUT = .1
 
 # Find my IP
-# Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+# Cite: http://is.gd/gLzpdS
 stmp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 stmp.connect(("gmail.com",80))
 me = stmp.getsockname()[0]
@@ -140,6 +140,8 @@ def rdt_send(file_data):
         if DEBUG:
           print "CLIENT: No pkt recieved with timeout", TIMEOUT
           print "CLIENT: Go-back-N because of full window and no ACK after timeout"
+
+        print "Timeout, sequence number =", oldest_unacked
 
         unacked = 0
         continue

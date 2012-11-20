@@ -126,7 +126,8 @@ while True:
   pkt_recv = parse_pkt(pkt_recv_raw)
 
   if DEBUG:
-    print "SERVER: Recieved pkt with seq_num", pkt_recv.seq_num, "chk_sum", pkt_recv.chk_sum
+    print "SERVER: Recieved pkt with seq_num", pkt_recv.seq_num, "chk_sum", \
+      pkt_recv.chk_sum
 
   # Compute checksum
   if pkt_recv.chk_sum != checksum(pkt_recv.data):
@@ -137,12 +138,14 @@ while True:
   # Check sequence number
   if expected_seq_num != pkt_recv.seq_num:
     if DEBUG:
-      print "SERVER: Unexpected sequence number", pkt_recv.seq_num, ", expected", expected_seq_num
+      print "SERVER: Unexpected sequence number", pkt_recv.seq_num, ", expected", \
+        expected_seq_num
     continue
 
   # Generate artificial packet loss
   r = random.random()
   if r <= prob_loss:
+    print "Packet loss, sequence number =", pkt_recv.seq_num
     if DEBUG:
       print "SERVER: Artificial pkt loss at p =", prob_loss, "with r =", r
     continue

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 cp ../client.py ./
-#echo "$(dd if=/dev/urandom bs=3 count=1000)" > file0
 cat ../file2 > ./file0
-./client.py 10.0.0.2 7735 file0 5 1500
+#echo "$(dd if=/dev/urandom bs=3 count=1000)" >> file0
+./client.py 10.0.0.3 7735 file0 5 1500
 sleep 4
-diff ../s/file0 file0
-if [ $? ]
+diff ../s/file0 file0 > /dev/null
+if [ $? -gt 0 ]
 then
-  echo Success: file transfered
-else
   echo Failure: file not transfered
+else
+  echo Success: file transfered
 fi
