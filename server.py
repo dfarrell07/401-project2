@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import pdb
 import socket
 import sys
 import random
@@ -8,13 +9,13 @@ from struct import *
 from collections import namedtuple
 
 E_FILE_READ_FAIL = 69
-DEBUG = True
+DEBUG = False
 E_INVALID_PARAMS = 2
 SPORT = 7735 # Well-known server port
 CPORT = 7736 # Well-known client port
 HEADER_LEN = 8 # Bytes
 ACK_ID = 0b1010101010101010
-TIMEOUT = 3
+TIMEOUT = 2
 
 # Find my IP
 # Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
@@ -39,22 +40,26 @@ file_name = str(sys.argv[2])
 prob_loss = float(sys.argv[3])
 
 # Only port 7735 is allowed for this project
-if sport != SPORT:
-  print "Sorry, the use of port", SPORT, "is required for this project"
-  sport = SPORT
+#if not DEBUG and sport != SPORT:
+#  print "Sorry, the use of port", SPORT, "is required for this project"
+#  sport = SPORT
 
 # Cite: http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python
 def carry_around_add(a, b):
-    c = a + b
-    return (c & 0xffff) + (c >> 16)
+  c = a + b
+  return (c & 0xffff) + (c >> 16)
 
 # Cite: http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python
 def checksum(msg):
-    s = 0
-    for i in range(0, len(msg), 2):
-        w = ord(msg[i]) + (ord(msg[i+1]) << 8)
-        s = carry_around_add(s, w)
-    return ~s & 0xffff
+  # Force data into 16 bit chunks for checksum
+  if (len(msg) % 2) != 0:
+    msg += "0"
+
+  s = 0
+  for i in range(0, len(msg), 2):
+    w = ord(msg[i]) + (ord(msg[i+1]) << 8)
+    s = carry_around_add(s, w)
+  return ~s & 0xffff
 
 def parse_pkt(pkt_raw):
   """Convert raw pkt data into a usable pkt named tuple"""
@@ -84,24 +89,28 @@ except:
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((me, sport))
 sock.setblocking(0)
-print "SERVER: Listening on " + me + ":" + str(sport)
+if DEBUG:
+  print "SERVER: Listening on " + me + ":" + str(sport)
 while True:
   # Receive packet
   try:
-      # TODO: Remove magic number
+      if DEBUG:
+        print "SERVER: Ready for data, timeout started..."
       ready = select.select([sock], [], [], TIMEOUT)
       if ready[0]:
         pkt_recv_raw, addr = sock.recvfrom(4096)
         if DEBUG:
           print "SERVER: Packet recieved from", addr
       elif expected_seq_num == 0: # If no pkt has been recieved
+        if DEBUG:
+          print "SERVER: No data yet"
         continue
       else: # Assume client done sending, since we have no FIN (per spec)
-        print "Client seems to be done sending. Timeout is", TIMEOUT, "seconds."
+        if DEBUG:
+          print "Client seems to be done sending. Timeout is", TIMEOUT, "seconds."
         sock.close
         fd.close()
         sys.exit(0)
-        
   except socket.error:
       if DEBUG:
         # TODO: Add more error info
@@ -119,12 +128,6 @@ while True:
   if DEBUG:
     print "SERVER: Recieved pkt with seq_num", pkt_recv.seq_num, "chk_sum", pkt_recv.chk_sum
 
-  # Generate artificial packet loss
-  if random.random() <= prob_loss:
-    if DEBUG:
-      print "SERVER: Artificial pkt loss at p =", prob_loss
-    continue
-
   # Compute checksum
   if pkt_recv.chk_sum != checksum(pkt_recv.data):
     if DEBUG:
@@ -137,6 +140,13 @@ while True:
       print "SERVER: Unexpected sequence number", pkt_recv.seq_num, ", expected", expected_seq_num
     continue
 
+  # Generate artificial packet loss
+  r = random.random()
+  if r <= prob_loss:
+    if DEBUG:
+      print "SERVER: Artificial pkt loss at p =", prob_loss, "with r =", r
+    continue
+
   # Send ACK
   send_ack(pkt_recv.seq_num, addr[0])
   expected_seq_num += 1
@@ -147,5 +157,3 @@ while True:
   except:
     print "Failed to open file:", file_name
     sys.exit(E_FILE_READ_FAIL)
-
-

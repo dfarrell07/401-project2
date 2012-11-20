@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
+import pdb
+import time
+import select
 import socket
 import errno
 import sys
 from struct import *
 from collections import namedtuple
 
-DEBUG = True
+DEBUG = False
 E_INVALID_PARAMS = 2
 E_FILE_READ_FAIL = 69
 E_NO_SERVER = 70
@@ -15,6 +18,7 @@ CPORT = 7736 # Well-known client port
 DATA_ID = 0b0101010101010101 # Well-known
 ACK_ID = 0b1010101010101010
 HEADER_LEN = 8 # Bytes
+TIMEOUT = 0
 
 # Find my IP
 # Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
@@ -26,6 +30,7 @@ stmp.close()
 # Open UDP socket for communication with server
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((me, CPORT))
+sock.setblocking(0)
 
 # Build data structure for repersentating packets
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
@@ -45,36 +50,37 @@ window_size = int(sys.argv[4])
 mss = int(sys.argv[5])
 
 if DEBUG:
-  print "shost:", shost, "\nsport:", sport, "\nfile_name:", file_name, "\nwindow_size:", window_size, "\nmss:", mss
-
-# Only port 7735 is allowed for this project
-if sport != SPORT:
-  print "Sorry, the use of port", SPORT, "is required for this project"
-  sport = SPORT
+  print "CLIENT: shost:", shost, "\nCLIENT: sport:", sport, "\nCLIENT: file_name:",\
+    file_name, "\nCLIENT: window_size:", window_size, "\nCLIENT: mss:", mss
 
 # Cite: http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python
 def carry_around_add(a, b):
-    c = a + b
-    return (c & 0xffff) + (c >> 16)
+  c = a + b
+  return (c & 0xffff) + (c >> 16)
 
 # Cite: http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python
 def checksum(msg):
-    s = 0
-    for i in range(0, len(msg), 2):
-        w = ord(msg[i]) + (ord(msg[i+1]) << 8)
-        s = carry_around_add(s, w)
-    return ~s & 0xffff
+  # Force data into 16 bit chunks for checksum
+  if (len(msg) % 2) != 0:
+    msg += "0"
+
+  s = 0
+  for i in range(0, len(msg), 2):
+    w = ord(msg[i]) + (ord(msg[i+1]) << 8)
+    s = carry_around_add(s, w)
+  return ~s & 0xffff
 
 def send_pkt(pkt, sock):
   """
   Take a pkt named tuple, build the pkt and send it to the server
   """
   if DEBUG:
-    print "Packing checksum", pkt.chk_sum
+    print "CLIENT: Packing checksum", pkt.chk_sum, "seq_num", pkt.seq_num
 
-  raw_pkt = pack('iHH' + str(len(pkt.data)) + 's', pkt.seq_num, int(pkt.chk_sum), pkt.pkt_type, pkt.data)
+  raw_pkt = pack('iHH' + str(len(pkt.data)) + 's', pkt.seq_num, int(pkt.chk_sum), \
+    pkt.pkt_type, pkt.data)
 
-  sock.sendto(raw_pkt, (shost, SPORT))
+  sock.sendto(raw_pkt, (shost, sport))
 
 def parse_ack(pkt_raw):
   """Convert raw ACK pkt into a usable pkt named tuple"""
@@ -91,10 +97,11 @@ def build_pkts(file_data):
   to_send = min(mss - HEADER_LEN, len(file_data) - sent)
   while to_send > 0:
     # Build a pkt named tuple and add it to the list of packets
-    pkts.append(pkt(seq_num = seq_num, chk_sum = checksum(file_data[sent:sent + to_send]), \
-      pkt_type = DATA_ID, data = file_data[sent:sent + to_send], acked = False))
+    pkts.append(pkt(seq_num = seq_num, chk_sum = checksum(file_data[sent:sent \
+      + to_send]), pkt_type = DATA_ID, data = file_data[sent:sent + to_send], \
+      acked = False))
     if DEBUG:
-      print "Built pkt with seq_num", seq_num
+      print "CLIENT: Built pkt with seq_num", seq_num
     sent += to_send
     to_send = min(mss - HEADER_LEN, len(file_data) - sent)
     seq_num += 1
@@ -117,17 +124,25 @@ def rdt_send(file_data):
       send_pkt(pkts[oldest_unacked + unacked], sock)
 
       if DEBUG:
-        print "CLIENT: Sent pkt to", str(shost) + ":" +  str(SPORT)
+        print "CLIENT: Sent pkt to", str(shost) + ":" +  str(sport)
 
       unacked += 1
       continue
     else: # Can not send pkt
       # Listen for ACKs TODO: Remove magic number
-      pkt_recv_raw, addr = sock.recvfrom(4096)
+      #pkt_recv_raw, addr = sock.recvfrom(4096)
+      ready = select.select([sock], [], [], TIMEOUT)
+      if ready[0]:
+        pkt_recv_raw, addr = sock.recvfrom(4096)
+        if DEBUG:
+          print "CLIENT: Packet recieved from", addr
+      else: # Window is full and no ACK recieved before timeout
+        if DEBUG:
+          print "CLIENT: No pkt recieved with timeout", TIMEOUT
+          print "CLIENT: Go-back-N because of full window and no ACK after timeout"
 
-      if DEBUG:
-        print "CLIENT FROM SERVER:\n", addr
-        print "CLIENT FROM SERVER:\n", pkt_recv_raw
+        unacked = 0
+        continue
 
       # Confirm that pkt is from the server
       if addr[0] != shost:
@@ -153,7 +168,12 @@ def rdt_send(file_data):
           print "CLIENT: oldest_unacked updated, now", oldest_unacked
           print "CLIENT: unacked updated, now", unacked
       else:
-        print "CLIENT: Out of order pkt. Expected", oldest_unacked, "recieved", pkt_recv.seq_num
+        if DEBUG:
+          print "CLIENT: Out of order pkt. Expected", oldest_unacked, \
+            "recieved", pkt_recv.seq_num
+          print "CLIENT: Go-back-N with unacked", unacked, "== window_size", \
+            window_size
+        unacked = 0
         continue
 
   # Close server connection and exit sucessfully
@@ -169,6 +189,11 @@ try:
   fd.close()
 except:
   print "Failed to open file:", file_name
+  sys.exit(E_FILE_READ_FAIL)
+
+# Validate file data
+if file_data == "":
+  print "No data read from file. Is it empty?"
   sys.exit(E_FILE_READ_FAIL)
 
 # Pass file data to reliable data transfer function
