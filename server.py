@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# Implements reliable data transfer over UDP. See project spec for details.
+# Usage: `python server.py <sport> <file_name> <prob_loss>`
+# Author: Daniel Farrell
+# Usage: Use freely
 
 import pdb
 import socket
@@ -25,10 +29,10 @@ me = stmp.getsockname()[0]
 stmp.close()
 
 
-# Build data structure for repersentating packets
+# Build data structure for representating packets
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
 
-# Validate number of passed argumnets
+# Validate number of passed arguments
 # Spec: Must have form <sport> <file_name> <prob_loss> 
 if len(sys.argv) != 4:
   print "Usage: ./server <sport> <file_name> <prob_loss>"
@@ -39,18 +43,20 @@ sport = int(sys.argv[1])
 file_name = str(sys.argv[2])
 prob_loss = float(sys.argv[3])
 
-# Only port 7735 is allowed for this project
+# Only port 7735 is allowed for this project. Turn this on if you want that limit.
 #if not DEBUG and sport != SPORT:
 #  print "Sorry, the use of port", SPORT, "is required for this project"
 #  sport = SPORT
 
 # Cite: http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python
 def carry_around_add(a, b):
+  """Helper function for checksum function"""
   c = a + b
   return (c & 0xffff) + (c >> 16)
 
 # Cite: http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python
 def checksum(msg):
+  """Compute and return a checksum of the given data"""
   # Force data into 16 bit chunks for checksum
   if (len(msg) % 2) != 0:
     msg += "0"
@@ -85,7 +91,7 @@ except:
   print "Failed to open file:", file_name
   sys.exit(E_FILE_READ_FAIL)
 
-# Listen for connections on sport TODO: Try/catch?
+# Listen for connections on sport TODO: Try/catch
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((me, sport))
 sock.setblocking(0)
@@ -100,8 +106,8 @@ while True:
       if ready[0]:
         pkt_recv_raw, addr = sock.recvfrom(4096)
         if DEBUG:
-          print "SERVER: Packet recieved from", addr
-      elif expected_seq_num == 0: # If no pkt has been recieved
+          print "SERVER: Packet received from", addr
+      elif expected_seq_num == 0: # If no pkt has been received
         if DEBUG:
           print "SERVER: No data yet"
         continue
@@ -126,7 +132,7 @@ while True:
   pkt_recv = parse_pkt(pkt_recv_raw)
 
   if DEBUG:
-    print "SERVER: Recieved pkt with seq_num", pkt_recv.seq_num, "chk_sum", \
+    print "SERVER: Received pkt with seq_num", pkt_recv.seq_num, "chk_sum", \
       pkt_recv.chk_sum
 
   # Compute checksum

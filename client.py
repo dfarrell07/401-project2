@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# Implements reliable data transfer over UDP. See project spec for details.
+# Usage: `python client.py <shost> <sport> <file_name> <N> <MSS>`
+# Author: Daniel Farrell
+# Usage: Use freely
 
 import pdb
 import time
@@ -10,15 +14,15 @@ from struct import *
 from collections import namedtuple
 
 DEBUG = False
-E_INVALID_PARAMS = 2
-E_FILE_READ_FAIL = 69
-E_NO_SERVER = 70
+E_INVALID_PARAMS = 2 # Error code returned for invalid params
+E_FILE_READ_FAIL = 69 # Error code returned if the target file can not be read
+E_NO_SERVER = 70 # Error code returned if the target server can not be found
 SPORT = 7735 # Well-known server port
 CPORT = 7736 # Well-known client port
 DATA_ID = 0b0101010101010101 # Well-known
-ACK_ID = 0b1010101010101010
+ACK_ID = 0b1010101010101010 # Well-known
 HEADER_LEN = 8 # Bytes
-TIMEOUT = .1
+TIMEOUT = .1 # Seconds
 
 # Find my IP
 # Cite: http://is.gd/gLzpdS
@@ -32,7 +36,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((me, CPORT))
 sock.setblocking(0)
 
-# Build data structure for repersentating packets
+# Build data structure for representating packets
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
 ack = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type"])
 
@@ -55,11 +59,13 @@ if DEBUG:
 
 # Cite: http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python
 def carry_around_add(a, b):
+  """Helper function for checksum function"""
   c = a + b
   return (c & 0xffff) + (c >> 16)
 
 # Cite: http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python
 def checksum(msg):
+  """Compute and return a checksum of the given data"""
   # Force data into 16 bit chunks for checksum
   if (len(msg) % 2) != 0:
     msg += "0"
@@ -111,7 +117,7 @@ def build_pkts(file_data):
 
 
 def rdt_send(file_data):
-  """Send passed data reliabally, using an unreliable connection"""
+  """Send passed data reliably, using an unreliable connection"""
   # Build packet list
   pkts = build_pkts(file_data)
 
@@ -129,16 +135,15 @@ def rdt_send(file_data):
       unacked += 1
       continue
     else: # Can not send pkt
-      # Listen for ACKs TODO: Remove magic number
-      #pkt_recv_raw, addr = sock.recvfrom(4096)
+      # Listen for ACKs
       ready = select.select([sock], [], [], TIMEOUT)
       if ready[0]:
         pkt_recv_raw, addr = sock.recvfrom(4096)
         if DEBUG:
-          print "CLIENT: Packet recieved from", addr
-      else: # Window is full and no ACK recieved before timeout
+          print "CLIENT: Packet received from", addr
+      else: # Window is full and no ACK received before timeout
         if DEBUG:
-          print "CLIENT: No pkt recieved with timeout", TIMEOUT
+          print "CLIENT: No pkt received with timeout", TIMEOUT
           print "CLIENT: Go-back-N because of full window and no ACK after timeout"
 
         print "Timeout, sequence number =", oldest_unacked
@@ -158,7 +163,7 @@ def rdt_send(file_data):
       # Confirm that pkt is indeed an ACK
       if pkt_recv.pkt_type != ACK_ID:
         if DEBUG:
-          print "CLIENT: Unexpect pkt type", pkt_recv.pkt_type, ", dropping pkt"
+          print "CLIENT: Unexpected pkt type", pkt_recv.pkt_type, ", dropping pkt"
         continue
 
       # If this is the pkt you're looking for
@@ -172,14 +177,14 @@ def rdt_send(file_data):
       else:
         if DEBUG:
           print "CLIENT: Out of order pkt. Expected", oldest_unacked, \
-            "recieved", pkt_recv.seq_num
+            "received", pkt_recv.seq_num
           print "CLIENT: Go-back-N with unacked", unacked, "== window_size", \
             window_size
         unacked = 0
         continue
 
-  # Close server connection and exit sucessfully
-  print "CLIENT: File sucessfully transfered"
+  # Close server connection and exit successfully
+  print "CLIENT: File successfully transfered"
   sock.close()
   sys.exit(0)
 

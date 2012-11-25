@@ -1,1 +1,12 @@
-TODO Write this
+Author: Daniel Farrell
+Usage: Use freely
+
+The best way to run this program is to use the included 'run' executable shell script.
+
+Usage: `. run [num_runs]`
+
+Each run cleans up old data, generates a new data file from random data and a word list,
+generates random params for the client and server, launches the client and server, waits 
+for them to complete and then checks the results. 
+
+See the project spec for complete details.
