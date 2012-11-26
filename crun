@@ -1,1 +1,1 @@
-python client.py 10.0.0.3 7735 file2 5 1500
+python client.py 152.14.229.97 7735 passwd.lst 15 2011

@@ -115,7 +115,6 @@ def build_pkts(file_data):
   # Newly built list of pkts
   return pkts
 
-
 def rdt_send(file_data):
   """Send passed data reliably, using an unreliable connection"""
   # Build packet list
@@ -136,6 +135,9 @@ def rdt_send(file_data):
       continue
     else: # Can not send pkt
       # Listen for ACKs
+      if DEBUG:
+        print "CLIENT: Listening with unacked", unacked, "window_size", window_size, \
+          "oldest_unacked", oldest_unacked, "len(pkts)", len(pkts)
       ready = select.select([sock], [], [], TIMEOUT)
       if ready[0]:
         pkt_recv_raw, addr = sock.recvfrom(4096)
@@ -144,7 +146,7 @@ def rdt_send(file_data):
       else: # Window is full and no ACK received before timeout
         if DEBUG:
           print "CLIENT: No pkt received with timeout", TIMEOUT
-          print "CLIENT: Go-back-N because of full window and no ACK after timeout"
+          #print "CLIENT: Go-back-N because of full window and no ACK after timeout"
 
         print "Timeout, sequence number =", oldest_unacked
 
@@ -166,28 +168,16 @@ def rdt_send(file_data):
           print "CLIENT: Unexpected pkt type", pkt_recv.pkt_type, ", dropping pkt"
         continue
 
-      # If this is the pkt you're looking for
-      if pkt_recv.seq_num == oldest_unacked:
-        oldest_unacked += 1
-        unacked -= 1
+      if DEBUG:
+        print "CLIENT: Recieved pkt with seq_num", pkt_recv.seq_num
 
-        if DEBUG:
-          print "CLIENT: oldest_unacked updated, now", oldest_unacked
-          print "CLIENT: unacked updated, now", unacked
-      else:
-        if DEBUG:
-          print "CLIENT: Out of order pkt. Expected", oldest_unacked, \
-            "received", pkt_recv.seq_num
-          print "CLIENT: Go-back-N with unacked", unacked, "== window_size", \
-            window_size
-        unacked = 0
-        continue
+      unacked -= pkt_recv.seq_num - oldest_unacked 
+      oldest_unacked = pkt_recv.seq_num
 
   # Close server connection and exit successfully
   print "CLIENT: File successfully transfered"
   sock.close()
   sys.exit(0)
-
 
 # Open file passed from CLI
 try:

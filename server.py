@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Implements reliable data transfer over UDP. See project spec for details.
-# Usage: `python server.py <sport> <file_name> <prob_loss>`
+# Usage: `python server.py <sport> <file_name> <prob_loss> <N>`
 # Author: Daniel Farrell
 # Usage: Use freely
 
@@ -9,17 +9,18 @@ import socket
 import sys
 import random
 import select
+import subprocess
 from struct import *
 from collections import namedtuple
 
-E_FILE_READ_FAIL = 69
 DEBUG = False
-E_INVALID_PARAMS = 2
+E_FILE_READ_FAIL = 69 # Error code returned if the target file can not be read
+E_INVALID_PARAMS = 2 # Error code returned for invalid params
 SPORT = 7735 # Well-known server port
 CPORT = 7736 # Well-known client port
 HEADER_LEN = 8 # Bytes
-ACK_ID = 0b1010101010101010
-TIMEOUT = 2
+ACK_ID = 0b1010101010101010 #Well-known
+TIMEOUT = 2 # Seconds
 
 # Find my IP
 # Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
@@ -29,19 +30,23 @@ me = stmp.getsockname()[0]
 stmp.close()
 
 
-# Build data structure for representating packets
+# Build data structures for representating packets and pkt buffer
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
+pkt_buffer = []
+expected_seq_num = 0
 
 # Validate number of passed arguments
-# Spec: Must have form <sport> <file_name> <prob_loss> 
-if len(sys.argv) != 4:
-  print "Usage: ./server <sport> <file_name> <prob_loss>"
+# Spec: Must have form <sport> <file_name> <prob_loss> <window size>
+# Note: Window size must be the same for the client and server
+if len(sys.argv) != 5:
+  print "Usage: ./server <sport> <file_name> <prob_loss> <window size>"
   sys.exit(E_INVALID_PARAMS)
 
 # Read data from CLI
 sport = int(sys.argv[1])
 file_name = str(sys.argv[2])
 prob_loss = float(sys.argv[3])
+window_size = int(sys.argv[4])
 
 # Only port 7735 is allowed for this project. Turn this on if you want that limit.
 #if not DEBUG and sport != SPORT:
@@ -75,14 +80,70 @@ def parse_pkt(pkt_raw):
 
 def send_ack(seq_num, chost):
   """ACK the given seq_num pkt"""
+  # Build pkt to put on the wire
+  #seq_num = expected_seq_num
   raw_ack = pack('iHH', seq_num, 0, ACK_ID)
 
   if DEBUG:
     print "SERVER: Sending ACK with seq_num", seq_num
 
+  # Send pkt
   sock.sendto(raw_ack, (chost, CPORT))
 
-expected_seq_num = 0
+def buffer_pkt(pkt_in):
+  """If pkt_in is a previously unseen and the window is not full, buffer pkt"""
+  #global pkt_buffer
+
+  # Fail if we have already processed this pkt and removed it from buffer
+  if pkt_in.seq_num < expected_seq_num:
+    if DEBUG:
+      print "SERVER: Pkt", pkt_in.seq_num, "less than esn", expected_seq_num, "already written"
+    return False
+
+  # Fail if we already have this pkt in buffer
+  for p in pkt_buffer:
+    if p.seq_num == pkt_in.seq_num:
+      if DEBUG:
+        print "SERVER: Pkt", pkt_in.seq_num, "already in buffer"
+      return False
+
+  # Fail if window is full
+  if window_size <= len(pkt_buffer):
+    if DEBUG:
+      print "SERVER: Window overflow. Are client and server using same window size?"
+    return False
+
+  # Add pkt to buffer
+  pkt_buffer.append(pkt_in)
+
+  if DEBUG:
+    print "SERVER: Added pkt with seq_num", pkt_in.seq_num, "to buffer"
+
+  return True
+
+def write_buffer(fd, expected_seq_num):
+  """
+  Write to an output file all pkt data, from the oldest unwritten pkt to the 
+  oldest unseen pkt.
+  """
+  global pkt_buffer
+  pkt_buffer = sorted(pkt_buffer, key=lambda x: x.seq_num)
+  for p in pkt_buffer:
+    if p.seq_num == expected_seq_num:
+      if DEBUG:
+        print "SERVER: Writing pkt", p.seq_num
+
+      # Write the next pkts data to the output file
+      try:
+        fd.write(p.data)
+      except:
+        print "Failed to open file:", file_name
+        sys.exit(E_FILE_READ_FAIL)
+
+      # Remove the pkt from the buffer
+      pkt_buffer.remove(p)
+      expected_seq_num += 1
+  return expected_seq_num
 
 # Open output file 
 try:
@@ -141,13 +202,6 @@ while True:
       print "SERVER: Invalid checksum, pkt dropped"
     continue
 
-  # Check sequence number
-  if expected_seq_num != pkt_recv.seq_num:
-    if DEBUG:
-      print "SERVER: Unexpected sequence number", pkt_recv.seq_num, ", expected", \
-        expected_seq_num
-    continue
-
   # Generate artificial packet loss
   r = random.random()
   if r <= prob_loss:
@@ -156,13 +210,11 @@ while True:
       print "SERVER: Artificial pkt loss at p =", prob_loss, "with r =", r
     continue
 
-  # Send ACK
-  send_ack(pkt_recv.seq_num, addr[0])
-  expected_seq_num += 1
+  # Add packet to buffer
+  buffer_pkt(pkt_recv)
 
-  # Write data to file 
-  try:
-    fd.write(pkt_recv.data)
-  except:
-    print "Failed to open file:", file_name
-    sys.exit(E_FILE_READ_FAIL)
+  # Write as much in-order data as possible to output file 
+  expected_seq_num = write_buffer(fd, expected_seq_num)
+
+  # Send ACK
+  send_ack(expected_seq_num, addr[0])
