@@ -2,7 +2,7 @@
 # Implements reliable data transfer over UDP. See project spec for details.
 # Usage: `python client.py <shost> <sport> <file_name> <N> <MSS>`
 # Author: Daniel Farrell
-# Usage: Use freely
+# Usage: Public Domain
 
 import pdb
 import time
@@ -146,7 +146,6 @@ def rdt_send(file_data):
       else: # Window is full and no ACK received before timeout
         if DEBUG:
           print "CLIENT: No pkt received with timeout", TIMEOUT
-          #print "CLIENT: Go-back-N because of full window and no ACK after timeout"
 
         print "Timeout, sequence number =", oldest_unacked
 

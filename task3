@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Fully automated solution to task2 of the spec, even graph generation.
+# Author: Daniel Farrell
+# Public Domain
 
 TIMEFORMAT=%R
 
@@ -78,6 +81,7 @@ done
 # Kill any running server process
 ssh adminuser@$shost "pkill python"
 
+# Build R script for creating graph
 echo "srd3 <- read.table(\"./data_sr3\", header=T, sep=\",\")
 max_delay <- max(srd3\$avg_delay)
 plot(x=srd3\$p, y=srd3\$avg_delay, ylim=c(min(srd3\$avg_delay),1.1*max(srd3\$avg_delay)), col='blue', type=\"o\", main='Task 3 - Selective Repeat ARQ', ylab='Delay (Seconds)', xlab='Packet Loss Probability P')
@@ -85,4 +89,5 @@ abline(lm(srd3\$avg_delay~srd3\$p))
 box()
 " > Rscript_sr3
 
+# Run R script
 R CMD BATCH ./Rscript_sr3

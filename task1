@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Fully automated solution to task2 of the spec, even graph generation.
+# Author: Daniel Farrell
+# Public Domain
 
 TIMEFORMAT=%R
 
@@ -74,6 +77,7 @@ done
 # Kill any running server process
 ssh adminuser@$shost "pkill python"
 
+# Build R script for creating graph
 echo "srd1 <- read.table(\"./data_sr1\", header=T, sep=\",\")
 max_delay <- max(srd1\$avg_delay)
 plot(x=srd1\$n, y=srd1\$avg_delay, ylim=c(min(srd1\$avg_delay),1.1*max(srd1\$avg_delay)), col='blue', type=\"o\", main='Task 1 - Selective Repeat ARQ', ylab='Delay (Seconds)', xlab='Window Size N')
@@ -81,4 +85,5 @@ abline(lm(srd1\$avg_delay~srd1\$n))
 box()
 " > Rscript_sr1
 
+# Run R script
 R CMD BATCH ./Rscript_sr1

@@ -2,7 +2,7 @@
 # Implements reliable data transfer over UDP. See project spec for details.
 # Usage: `python server.py <sport> <file_name> <prob_loss> <N>`
 # Author: Daniel Farrell
-# Usage: Use freely
+# Usage: Public Domain
 
 import pdb
 import socket
@@ -23,7 +23,7 @@ ACK_ID = 0b1010101010101010 #Well-known
 TIMEOUT = 2 # Seconds - Note that this should be subtracted out if taking stats
 
 # Find my IP
-# Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+# Cite: http://goo.gl/E7Okx
 stmp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 stmp.connect(("gmail.com",80))
 me = stmp.getsockname()[0]
@@ -81,7 +81,6 @@ def parse_pkt(pkt_raw):
 def send_ack(seq_num, chost):
   """ACK the given seq_num pkt"""
   # Build pkt to put on the wire
-  #seq_num = expected_seq_num
   raw_ack = pack('iHH', seq_num, 0, ACK_ID)
 
   if DEBUG:
@@ -92,8 +91,6 @@ def send_ack(seq_num, chost):
 
 def buffer_pkt(pkt_in):
   """If pkt_in is a previously unseen and the window is not full, buffer pkt"""
-  #global pkt_buffer
-
   # Fail if we have already processed this pkt and removed it from buffer
   if pkt_in.seq_num < expected_seq_num:
     if DEBUG:
@@ -180,8 +177,7 @@ while True:
         sys.exit(0)
   except socket.error:
       if DEBUG:
-        # TODO: Add more error info
-        print "SERVER: Error, dropping pkt"
+        print "SERVER: Socket error, dropping pkt"
       continue
   except KeyboardInterrupt:
     print "\nSERVER: Shutting down"
