@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Author: Daniel Farrell
+# Public Domain
+# Runs task1 of the spec using Go-Back-N and graphs the results
 
 TIMEFORMAT=%R
 
@@ -74,6 +77,7 @@ done
 # Kill any running server process
 ssh adminuser@$shost "pkill python"
 
+# Build R script that graphs results
 echo "gbnd1 <- read.table(\"./data_gbn1\", header=T, sep=\",\")
 max_delay <- max(gbnd1\$avg_delay)
 plot(x=gbnd1\$n, y=gbnd1\$avg_delay, ylim=c(min(gbnd1\$avg_delay),1.1*max(gbnd1\$avg_delay)), col='blue', type=\"o\", main='Task 1 - Go-Back-N ARQ', ylab='Delay (Seconds)', xlab='Window Size N')
@@ -81,4 +85,5 @@ abline(lm(gbnd1\$avg_delay~gbnd1\$n))
 box()
 " > Rscript_gbn1
 
+# Execute R script
 R CMD BATCH ./Rscript_gbn1

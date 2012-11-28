@@ -19,10 +19,10 @@ SPORT = 7735 # Well-known server port
 CPORT = 7736 # Well-known client port
 HEADER_LEN = 8 # Bytes
 ACK_ID = 0b1010101010101010
-TIMEOUT = 2
+TIMEOUT = 2 # Seconds
 
 # Find my IP
-# Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+# Cite: http://goo.gl/E7Okx
 stmp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 stmp.connect(("gmail.com",80))
 me = stmp.getsockname()[0]
@@ -119,8 +119,7 @@ while True:
         sys.exit(0)
   except socket.error:
       if DEBUG:
-        # TODO: Add more error info
-        print "SERVER: Error, dropping pkt"
+        print "SERVER: Socket error, dropping pkt"
       continue
   except KeyboardInterrupt:
     print "\nSERVER: Shutting down"

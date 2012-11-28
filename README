@@ -1,12 +1,12 @@
 Author: Daniel Farrell
-Usage: Use freely
+Usage: Public Domain
 
 The best way to run this program is to use the included 'run' executable shell script.
 
 Usage: `. run [num_runs]`
 
-Each run cleans up old data, generates a new data file from random data and a word list,
-generates random params for the client and server, launches the client and server, waits 
-for them to complete and then checks the results. 
+Each run cleans up old data, generates a new data file from random data and a word list, generates random params for the client and server, launches the client and server, waits for them to complete and then checks the results. 
+
+The ./results/ directory contains the data, graphs and analysis for each task given in the spec. I've automated the entire process for each task, which you can use via the task* scripts. Since the process is automated, I went ahead and did 20 runs for each task, instead of the 5 required by the spec, to get more accurate results.
 
 See the project spec for complete details.

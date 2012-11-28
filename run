@@ -5,7 +5,7 @@
 # If any run fails, the client and server will be killed and the script will exit.
 # Usage: `. run [num_rums]`
 # Author: Daniel Farrell
-# Usage: Use freely
+# Usage: Public Domain
 
 N_MAX=15
 N_MIN=1

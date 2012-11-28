@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Author: Daniel Farrell
+# Public Domain
+# Runs task3 of the spec using Go-Back-N and graphs the results
 
 TIMEFORMAT=%R
 
@@ -78,6 +81,7 @@ done
 # Kill any running server process
 ssh adminuser@$shost "pkill python"
 
+# Build R script that graphs results
 echo "gbnd3 <- read.table(\"./data_gbn3\", header=T, sep=\",\")
 max_delay <- max(gbnd3\$avg_delay)
 plot(x=gbnd3\$p, y=gbnd3\$avg_delay, ylim=c(min(gbnd3\$avg_delay),1.1*max(gbnd3\$avg_delay)), col='blue', type=\"o\", main='Task 3 - Go-Back-N ARQ', ylab='Delay (Seconds)', xlab='Packet Loss Probability P')
@@ -85,4 +89,5 @@ abline(lm(gbnd3\$avg_delay~gbnd3\$p))
 box()
 " > Rscript_gbn3
 
+# Execute R script
 R CMD BATCH ./Rscript_gbn3
