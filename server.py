@@ -13,14 +13,14 @@ import subprocess
 from struct import *
 from collections import namedtuple
 
-DEBUG = False
+DEBUG = True
 E_FILE_READ_FAIL = 69 # Error code returned if the target file can not be read
 E_INVALID_PARAMS = 2 # Error code returned for invalid params
 SPORT = 7735 # Well-known server port
 CPORT = 7736 # Well-known client port
 HEADER_LEN = 8 # Bytes
 ACK_ID = 0b1010101010101010 #Well-known
-TIMEOUT = 2 # Seconds
+TIMEOUT = 2 # Seconds - Note that this should be subtracted out if taking stats
 
 # Find my IP
 # Cite: http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib

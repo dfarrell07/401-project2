@@ -13,7 +13,7 @@ import sys
 from struct import *
 from collections import namedtuple
 
-DEBUG = False
+DEBUG = True
 E_INVALID_PARAMS = 2 # Error code returned for invalid params
 E_FILE_READ_FAIL = 69 # Error code returned if the target file can not be read
 E_NO_SERVER = 70 # Error code returned if the target server can not be found

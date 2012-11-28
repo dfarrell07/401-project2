@@ -1,0 +1,6 @@
+srd2 <- read.table("./data_sr2", header=T, sep=",")
+max_delay <- max(srd2$avg_delay)
+plot(x=srd2$mss, y=srd2$avg_delay, ylim=c(min(srd2$avg_delay),1.1*max(srd2$avg_delay)), col='blue', type="o", main='Task 2 - Selective Repeat ARQ', ylab='Delay (Seconds)', xlab='Maximum Segment Size MSS')
+abline(lm(srd2$avg_delay~srd2$mss))
+box()
+

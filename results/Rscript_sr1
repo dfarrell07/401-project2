@@ -1,0 +1,7 @@
+srd1 <- read.table("./task1_sr_data", header=T, sep=",")
+max_delay <- max(srd1$avg_delay)
+plot(x=srd1$n, y=srd1$avg_delay, ylim=c(min(srd1$avg_delay),1.1*max(srd1$avg_delay)), col='blue', type="o", main='Task 1 - Selective Repeat ARQ', ylab='Delay (Seconds)', xlab='Window Size N')
+abline(lm(srd1$avg_delay~srd1$n))
+box()
+png(filename="./task1_sr", height=600, width=600, bg="white")
+
