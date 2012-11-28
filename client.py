@@ -169,7 +169,7 @@ def rdt_send(file_data):
         continue
 
       if DEBUG:
-        print "CLIENT: Recieved pkt with seq_num", pkt_recv.seq_num
+        print "CLIENT: Received pkt with seq_num", pkt_recv.seq_num
 
       unacked -= pkt_recv.seq_num - oldest_unacked 
       oldest_unacked = pkt_recv.seq_num

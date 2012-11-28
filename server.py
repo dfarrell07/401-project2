@@ -30,7 +30,7 @@ me = stmp.getsockname()[0]
 stmp.close()
 
 
-# Build data structures for representating packets and pkt buffer
+# Build data structures for representing packets and pkt buffer
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
 pkt_buffer = []
 expected_seq_num = 0

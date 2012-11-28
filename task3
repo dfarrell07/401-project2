@@ -32,7 +32,7 @@ cp client.py c/client.py
 p=.01
 repeats_done=0
 delay_sum=0
-# Using this vs float conditoinals in bash
+# Using this vs float conditionals in bash
 p_steps_done=0 
 while [ $p_steps_done -lt $p_do_steps ]
 do

@@ -1,0 +1,3 @@
+The linear regression line for test 2, delay vs maximum segment size MSS, using selective repeat ARQ, is fairly strongly negative. This implies that increasing MSS reduces the average delay. This result is expected, especially considering the low values that MSS ranges over during these tests (via the spec). The actual minimum MSS of the links between the client and server is likely larger than any of the MSS values the test ranges over, so no fragmentation should occur and we are simply choosing to not send full packets when we (of course) should.
+
+The linear regression line is fairly strongly negative, which implies a fairly strong correlation between delay and MSS. 

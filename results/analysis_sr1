@@ -1,0 +1,3 @@
+The linear regression line for task 1, delay vs window size N, using selective repeat ARQ, shows a slightly negative slope. This implies that increasing N reduces average delay. This is expected, especially using SR ARQ. 
+
+Note that the linear regression line is only very slightly negative. This shows that there is a minimal correlation between delay and N. We should not draw too many conclusions from this data.
