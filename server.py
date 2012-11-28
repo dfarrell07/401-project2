@@ -29,7 +29,7 @@ me = stmp.getsockname()[0]
 stmp.close()
 
 
-# Build data structure for representating packets
+# Build data structure for representing packets
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
 
 # Validate number of passed arguments

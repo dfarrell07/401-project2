@@ -36,7 +36,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((me, CPORT))
 sock.setblocking(0)
 
-# Build data structure for representating packets
+# Build data structure for representing packets
 pkt = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type", "data", "acked"])
 ack = namedtuple("pkt", ["seq_num", "chk_sum", "pkt_type"])
 
