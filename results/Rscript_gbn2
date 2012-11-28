@@ -1,0 +1,6 @@
+gbnd2 <- read.table("./data_gbn2", header=T, sep=",")
+max_delay <- max(gbnd2$avg_delay)
+plot(x=gbnd2$mss, y=gbnd2$avg_delay, ylim=c(min(gbnd2$avg_delay),1.1*max(gbnd2$avg_delay)), col='blue', type="o", main='Task 2 - Go-Back-N ARQ', ylab='Delay (Seconds)', xlab='Maximum Segment Size MSS')
+abline(lm(gbnd2$avg_delay~gbnd2$mss))
+box()
+

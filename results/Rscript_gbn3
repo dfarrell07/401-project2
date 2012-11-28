@@ -1,0 +1,6 @@
+gbnd3 <- read.table("./data_gbn3", header=T, sep=",")
+max_delay <- max(gbnd3$avg_delay)
+plot(x=gbnd3$p, y=gbnd3$avg_delay, ylim=c(min(gbnd3$avg_delay),1.1*max(gbnd3$avg_delay)), col='blue', type="o", main='Task 3 - Go-Back-N ARQ', ylab='Delay (Seconds)', xlab='Packet Loss Probability P')
+abline(lm(gbnd3$avg_delay~gbnd3$p))
+box()
+
