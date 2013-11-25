@@ -36,42 +36,42 @@ repeats_done=0
 delay_sum=0
 while [ $n -le $n_ceiling ]
 do
-  while [ $repeats_done -lt $repeats ]
-  do
-    # Kill any running server process
-    ssh adminuser@$shost "pkill python"
+    while [ $repeats_done -lt $repeats ]
+    do
+        # Kill any running server process
+        ssh adminuser@$shost "pkill python"
 
-    # Start server
-    echo SCRIPT: Starting remote server with sport:$sport outfile:$outfile p:$p n:$n
-    ssh adminuser@$shost "python /home/adminuser/p2/server.py $sport $outfile $p $n > slog &" &
+        # Start server
+        echo SCRIPT: Starting remote server with sport:$sport outfile:$outfile p:$p n:$n
+        ssh adminuser@$shost "python /home/adminuser/p2/server.py $sport $outfile $p $n > slog &" &
 
-    sleep 2
+        sleep 2
 
-    # Start client
-    echo SCRIPT: Starting client with host:$shost port:$sport n:$n mss:$mss
-    cd c
-    delay=$(time (python client.py $shost $sport $infile $n $mss >/dev/null 2>&1) 2>&1)
-    cd ..
+        # Start client
+        echo SCRIPT: Starting client with host:$shost port:$sport n:$n mss:$mss
+        cd c
+        delay=$(time (python client.py $shost $sport $infile $n $mss >/dev/null 2>&1) 2>&1)
+        cd ..
 
-    # Report run result
-    echo "SCRIPT: (n,delay) is ($n,$delay)"
+        # Report run result
+        echo "SCRIPT: (n,delay) is ($n,$delay)"
+
+        # Update vars
+        delay_sum=$(echo "scale=3;$delay_sum+$delay" | bc)
+        let repeats_done=$repeats_done+1
+    done
+    # Get average delay
+    avg_delay=$(echo "scale=3;$delay_sum/$repeats_done" | bc)
+
+    echo "SCRIPT: Average (n,delay_sum) : ($n,$delay_sum) is $avg_delay"
+
+    # Write results to file
+    echo "$n,$avg_delay" >> $results
 
     # Update vars
-    delay_sum=$(echo "scale=3;$delay_sum+$delay" | bc)
-    let repeats_done=$repeats_done+1
-  done
-  # Get average delay
-  avg_delay=$(echo "scale=3;$delay_sum/$repeats_done" | bc)
-
-  echo "SCRIPT: Average (n,delay_sum) : ($n,$delay_sum) is $avg_delay"
-
-  # Write results to file
-  echo "$n,$avg_delay" >> $results
-
-  # Update vars
-  let n=$n*2
-  repeats_done=0
-  delay_sum=0
+    let n=$n*2
+    repeats_done=0
+    delay_sum=0
 done
 
 # Kill any running server process

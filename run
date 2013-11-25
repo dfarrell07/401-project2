@@ -22,128 +22,128 @@ outfile=outfile
 # Get the number of runs from CLI args
 if [ -z $1 ]
 then
-  num_runs=1
+    num_runs=1
 else
-  num_runs=$1
+    num_runs=$1
 fi
 
 runs_cmplt=0
 # Do num_runs transfers
 while [ $runs_cmplt -lt $num_runs ]
 do
-  # Create necessary subdirectories if they don't exist
-  mkdir -p c s
+    # Create necessary subdirectories if they don't exist
+    mkdir -p c s
 
-  # Clean-up old data files
-  if [ -a c/$infile ]
-  then
-    echo SCRIPT: Removing c/$infile
-    rm c/$infile
-  fi
+    # Clean-up old data files
+    if [ -a c/$infile ]
+    then
+        echo SCRIPT: Removing c/$infile
+        rm c/$infile
+    fi
 
-  if [ -a s/$outfile ]
-  then
-    echo SCRIPT: Removing s/$outfile
-    rm s/$outfile
-  fi
+    if [ -a s/$outfile ]
+    then
+        echo SCRIPT: Removing s/$outfile
+        rm s/$outfile
+    fi
 
-  # Calculate random server port
-  sport=$(($RANDOM * 5 % $SPORT_MAX))
-  while [ $sport -lt $SPORT_MIN ]
-  do
+    # Calculate random server port
     sport=$(($RANDOM * 5 % $SPORT_MAX))
-  done
-  echo SCRIPT: Server port is $sport
+    while [ $sport -lt $SPORT_MIN ]
+    do
+        sport=$(($RANDOM * 5 % $SPORT_MAX))
+    done
+    echo SCRIPT: Server port is $sport
 
-  # Calculate random N
-  n=$(($RANDOM % $N_MAX))
-  while [ $n -lt $N_MIN ]
-  do
+    # Calculate random N
     n=$(($RANDOM % $N_MAX))
-  done
-  echo SCRIPT: N is $n
+    while [ $n -lt $N_MIN ]
+    do
+        n=$(($RANDOM % $N_MAX))
+    done
+    echo SCRIPT: N is $n
 
-  # Calculate random MSS
-  mss=$(($RANDOM % $MSS_MAX))
-  while [ $mss -lt $MSS_MIN ]
-  do
+    # Calculate random MSS
     mss=$(($RANDOM % $MSS_MAX))
-  done
-  echo SCRIPT: MSS is $mss
+    while [ $mss -lt $MSS_MIN ]
+    do
+        mss=$(($RANDOM % $MSS_MAX))
+    done
+    echo SCRIPT: MSS is $mss
 
-  # Calculate random p
-  p=$(printf "0.%03d" $(( $RANDOM % 1000 )))
-  result=$(awk -vn1="$p" -vn2="$P_MAX" 'BEGIN{print (n1>n2)?1:0 }')
-  while [ $result -eq 1 ]
-  do
+    # Calculate random p
     p=$(printf "0.%03d" $(( $RANDOM % 1000 )))
     result=$(awk -vn1="$p" -vn2="$P_MAX" 'BEGIN{print (n1>n2)?1:0 }')
-  done
-  echo SCRIPT: p is $p
+    while [ $result -eq 1 ]
+    do
+        p=$(printf "0.%03d" $(( $RANDOM % 1000 )))
+        result=$(awk -vn1="$p" -vn2="$P_MAX" 'BEGIN{print (n1>n2)?1:0 }')
+    done
+    echo SCRIPT: p is $p
 
-  # Build file to transfer
-  echo SCRIPT: Building file to transfer
-  cat passwd.lst > c/$infile
-  echo "$(dd if=/dev/urandom bs=3 count=1000000)" >> c/$infile
+    # Build file to transfer
+    echo SCRIPT: Building file to transfer
+    cat passwd.lst > c/$infile
+    echo "$(dd if=/dev/urandom bs=3 count=1000000)" >> c/$infile
 
-  # Update server's code
-  echo SCRIPT: Updating s/server.py
-  cp server.py s/server.py
+    # Update server's code
+    echo SCRIPT: Updating s/server.py
+    cp server.py s/server.py
 
-  # Start server
-  echo SCRIPT: Starting server with port:$sport file:$outfile p:$p
-  # ex. python s/server.py 7735 outfile .2 &
-  cd s
-  python server.py $sport $outfile $p &
-  spid=$!
-  cd ..
-  echo SCRIPT: Started server with PID $spid
-  sleep 1
+    # Start server
+    echo SCRIPT: Starting server with port:$sport file:$outfile p:$p
+    # ex. python s/server.py 7735 outfile .2 &
+    cd s
+    python server.py $sport $outfile $p &
+    spid=$!
+    cd ..
+    echo SCRIPT: Started server with PID $spid
+    sleep 1
 
-  # Update client's code
-  echo SCRIPT: Updating c/client.py
-  cp client.py c/client.py
+    # Update client's code
+    echo SCRIPT: Updating c/client.py
+    cp client.py c/client.py
 
-  # Start client
-  echo SCRIPT: Starting client with host:$shost port:$sport n:$n mss:$mss
-  # ex. python c/client.py 10.0.0.3 7735 infile 4 1200 &
-  cd c 
-  python client.py $shost $sport $infile $n $mss &
-  cpid=$!
-  cd ..
-  echo SCRIPT: Started client with PID $cpid
+    # Start client
+    echo SCRIPT: Starting client with host:$shost port:$sport n:$n mss:$mss
+    # ex. python c/client.py 10.0.0.3 7735 infile 4 1200 &
+    cd c 
+    python client.py $shost $sport $infile $n $mss &
+    cpid=$!
+    cd ..
+    echo SCRIPT: Started client with PID $cpid
 
-  # Wait for client/server to stop
-  echo SCRIPT: Waiting for client...
-  wait $cpid
-  echo SCRIPT: Done waiting for client
-  echo SCRIPT: Waiting for server...
-  wait $spid
-  echo SCRIPT: Done waiting for server
+    # Wait for client/server to stop
+    echo SCRIPT: Waiting for client...
+    wait $cpid
+    echo SCRIPT: Done waiting for client
+    echo SCRIPT: Waiting for server...
+    wait $spid
+    echo SCRIPT: Done waiting for server
 
-  # Check result
-  diff c/$infile s/$outfile > /dev/null
-  if [ $? -gt 0 ]
-  then
-    echo SCRIPT: FAILURE: FILE NOT TRANSFERED
-    kill -9 $spid
-    kill -9 $cpid
-    exit 1
-  else
-    echo SCRIPT: SUCCESS: FILE TRANSFERED
-    runs_cmplt=$(($runs_cmplt + 1))
-    if [ $runs_cmplt -ge $num_runs ]
+    # Check result
+    diff c/$infile s/$outfile > /dev/null
+    if [ $? -gt 0 ]
     then
-      continue
+        echo SCRIPT: FAILURE: FILE NOT TRANSFERED
+        kill -9 $spid
+        kill -9 $cpid
+        exit 1
+    else
+        echo SCRIPT: SUCCESS: FILE TRANSFERED
+        runs_cmplt=$(($runs_cmplt + 1))
+        if [ $runs_cmplt -ge $num_runs ]
+        then
+            continue
+        fi
     fi
-  fi
 
-  echo -ne SCRIPT: Next run in 3..
-  sleep .75
-  echo -ne 2..
-  sleep .75
-  echo 1..
-  sleep .75
+    echo -ne SCRIPT: Next run in 3..
+    sleep .75
+    echo -ne 2..
+    sleep .75
+    echo 1..
+    sleep .75
 done
 
 echo SCRIPT: Completed $runs_cmplt runs
