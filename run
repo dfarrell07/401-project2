@@ -31,20 +31,17 @@ runs_cmplt=0
 # Do num_runs transfers
 while [ $runs_cmplt -lt $num_runs ]
 do
-    # Create necessary subdirectories if they don't exist
-    mkdir -p c s
-
     # Clean-up old data files
-    if [ -a c/$infile ]
+    if [ -a $infile ]
     then
-        echo SCRIPT: Removing c/$infile
-        rm c/$infile
+        echo SCRIPT: Removing $infile
+        rm $infile
     fi
 
-    if [ -a s/$outfile ]
+    if [ -a $outfile ]
     then
-        echo SCRIPT: Removing s/$outfile
-        rm s/$outfile
+        echo SCRIPT: Removing $outfile
+        rm $outfile
     fi
 
     # Calculate random server port
@@ -83,34 +80,22 @@ do
 
     # Build file to transfer
     echo SCRIPT: Building file to transfer
-    cat sample_data > c/$infile
-    echo "$(dd if=/dev/urandom bs=3 count=1000000)" >> c/$infile
-
-    # Update server's code
-    echo SCRIPT: Updating s/server.py
-    cp server.py s/server.py
+    cat sample_data > $infile
+    echo "$(dd if=/dev/urandom bs=1 count=1000000)" >> $infile
 
     # Start server
     echo SCRIPT: Starting server with port:$sport file:$outfile p:$p
-    # ex. python s/server.py 7735 outfile .2 &
-    cd s
+    # ex. python server.py 7735 outfile .2 &
     python server.py $sport $outfile $p &
     spid=$!
-    cd ..
     echo SCRIPT: Started server with PID $spid
     sleep 1
 
-    # Update client's code
-    echo SCRIPT: Updating c/client.py
-    cp client.py c/client.py
-
     # Start client
     echo SCRIPT: Starting client with host:$shost port:$sport n:$n mss:$mss
-    # ex. python c/client.py 10.0.0.3 7735 infile 4 1200 &
-    cd c 
+    # ex. python client.py 10.0.0.3 7735 infile 4 1200 &
     python client.py $shost $sport $infile $n $mss &
     cpid=$!
-    cd ..
     echo SCRIPT: Started client with PID $cpid
 
     # Wait for client/server to stop
@@ -122,7 +107,7 @@ do
     echo SCRIPT: Done waiting for server
 
     # Check result
-    diff c/$infile s/$outfile > /dev/null
+    diff $infile $outfile > /dev/null
     if [ $? -gt 0 ]
     then
         echo SCRIPT: FAILURE: FILE NOT TRANSFERED
