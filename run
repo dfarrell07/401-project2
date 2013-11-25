@@ -83,7 +83,7 @@ do
 
     # Build file to transfer
     echo SCRIPT: Building file to transfer
-    cat passwd.lst > c/$infile
+    cat sample_data > c/$infile
     echo "$(dd if=/dev/urandom bs=3 count=1000000)" >> c/$infile
 
     # Update server's code
