@@ -18,7 +18,7 @@ n_ceiling=1024
 
 # Build file to transfer
 echo SCRIPT: Building file to transfer
-echo "$(dd if=/dev/urandom bs=1 count=$rand_size)" > c/$infile
+echo "$(dd if=/dev/urandom bs=1 count=$rand_size)" > $infile
 
 # Add columns to result file
 echo "n,avg_delay" > $results
@@ -26,10 +26,6 @@ echo "n,avg_delay" > $results
 # Update server's code
 echo SCRIPT: Updating remote server code
 scp server.py adminuser@$shost:/home/adminuser/p2/
-
-# Update client's code
-echo SCRIPT: Updating c/client.py
-cp client.py c/client.py
 
 n=1
 repeats_done=0
@@ -49,9 +45,7 @@ do
 
         # Start client
         echo SCRIPT: Starting client with host:$shost port:$sport n:$n mss:$mss
-        cd c
         delay=$(time (python client.py $shost $sport $infile $n $mss >/dev/null 2>&1) 2>&1)
-        cd ..
 
         # Report run result
         echo "SCRIPT: (n,delay) is ($n,$delay)"
